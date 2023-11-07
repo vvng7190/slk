@@ -1,3 +1,4 @@
+# slk project
 import cv2
 from ultralytics import RTDETR
 import easyocr
