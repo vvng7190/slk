@@ -45,7 +45,7 @@ else:
         cropped_image = image[y1:y2, x1:x2]
 
         # ocr for cropped img
-        result = reader.readtext(cropped_image, allowlist = '{소망동물병원')
+        result = reader.readtext(cropped_image, allowlist = '{소망동물병원삼화페인트서부슈퍼지영선한복맛깔명성안경콘택트공덕커피애월식당')
         for detection in result:
             coords = detection[0]
             text = detection[1]
