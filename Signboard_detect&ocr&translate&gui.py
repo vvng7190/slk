@@ -42,7 +42,6 @@ def detect_text(image_path):
         x1, y1, x2, y2 = map(int, box)
         cropped_image = image[y1:y2, x1:x2]
 
-        # Cropped 이미지에 대해 OCR 수행
         ocr_results = reader.readtext(cropped_image,
                                  allowlist = '{소망동물병원삼화페인트\
                                  서부슈퍼지영선한복맛깔명성안경콘택트\
