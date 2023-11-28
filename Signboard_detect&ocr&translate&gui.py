@@ -14,7 +14,6 @@ import webbrowser
 import tkinter as tk
 from tkinter import scrolledtext
 import tkinter.font as tkFont
-import numpy as np
 
 reader = easyocr.Reader(['ko'])
 translator = Translator()
@@ -119,18 +118,13 @@ def display_results():
     update_image_display(annotated)
 
 def update_image_display(annotated):
-    # OpenCV 이미지 (BGR)를 RGB로 변환합니다.
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-    # RGB 이미지를 PIL 형식으로 변환합니다.
     annotated_pil = Image.fromarray(annotated_rgb)
 
-    # 이미지 크기를 조정합니다.
     annotated_pil.thumbnail((640, 640))
 
-    # Tkinter에서 사용할 수 있는 형태로 변환합니다.
     photo = ImageTk.PhotoImage(annotated_pil)
 
-    # 이미지를 라벨 위젯에 표시합니다.
     label_image.config(image=photo)
     label_image.image = photo
 
