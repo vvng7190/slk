@@ -127,7 +127,7 @@ def update_image_display(annotated):
     annotated_pil = Image.fromarray(annotated_rgb)
 
     # 이미지 크기를 조정합니다.
-    annotated_pil.thumbnail((500, 500))
+    annotated_pil.thumbnail((640, 640))
 
     # Tkinter에서 사용할 수 있는 형태로 변환합니다.
     photo = ImageTk.PhotoImage(annotated_pil)
