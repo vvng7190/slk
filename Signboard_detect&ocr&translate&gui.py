@@ -31,9 +31,8 @@ def load_images():
         listbox_images.insert(tk.END, os.path.join(image_folder_path, image))
 
 def detect_text(image_path):
-    # RTDETR 모델을 사용하여 이미지에서 객체를 탐지합니다.
     results = model(image_path)
-    boxes = results[0].boxes.xyxy  # 좌상단과 우하단의 xyxy 좌표
+    boxes = results[0].boxes.xyxy
     annotated = results[0].plot()
 
     image = cv2.imread(image_path)
