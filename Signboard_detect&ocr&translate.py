@@ -6,6 +6,12 @@ import urllib.request
 import json
 import numpy as np
 from googletrans import Translator
+import easyocr
+import tkinter as tk
+from tkinter import scrolledtext, filedialog, Listbox
+from googletrans import Translator
+from PIL import Image, ImageTk
+import os
 
 # def of translate
 def translate_korean_to_english(text):
