@@ -1,52 +1,19 @@
 import easyocr
 import tkinter as tk
 from tkinter import scrolledtext, filedialog, Listbox
-from tkinter import Listbox, messagebox, filedialog, scrolledtext
-from googletrans import Translator
+from tkinter import messagebox, filedialog, scrolledtext
 from PIL import Image, ImageTk
 import os
-from tkinter import Tk, Label
-from tkinterdnd2 import DND_FILES, TkinterDnD
-import tkinter as tk
-from tkinter import messagebox
-import pyttsx3  # Initialize the OCR reader for Korean
-
+import pyttsx3
+import cv2
+from ultralytics import RTDETR
+from googletrans import Translator
 
 reader = easyocr.Reader(['ko'])
 translator = Translator()
 
-def ocr_and_translate(image_path):
-    results = reader.readtext(image_path)
-    detected_text = ""
-    translated_text = ""
-    for detection in results:
-        text = detection[1]
-        detected_text += f'{text}\n'
-        translation = translator.translate(text, src='ko', dest='en')
-        translated_text += f'{translation.text}\n'
-    return detected_text, translated_text
-
-
-def display_results():
-    selected_index = listbox_images.curselection()
-    if not selected_index:
-        return
-    image_path = listbox_images.get(selected_index[0])
-    original_text_scrolled.delete(1.0, tk.END)
-    translated_text_scrolled.delete(1.0, tk.END)
-    detected, translated = ocr_and_translate(image_path)
-    original_text_scrolled.insert(tk.END, detected)
-    translated_text_scrolled.insert(tk.END, translated)
-    update_image_display(image_path)
-
-
-def update_image_display(image_path):
-    image = Image.open(image_path)
-    image.thumbnail((500, 500))  # Resizing for display
-    photo = ImageTk.PhotoImage(image)
-    label_image.config(image=photo)
-    label_image.image = photo
-
+# RTDETR model load
+model = RTDETR('pt/rtdetr/signboard_l.pt')
 
 def load_images():
     image_folder_path = filedialog.askdirectory()
@@ -56,6 +23,60 @@ def load_images():
     for image in image_list:
         listbox_images.insert(tk.END, os.path.join(image_folder_path, image))
 
+def detect_text(image_path):
+    # RTDETR 모델을 사용하여 이미지에서 객체를 탐지합니다.
+    results = model(image_path)
+    boxes = results[0].boxes.xyxy  # 좌상단과 우하단의 xyxy 좌표
+
+    image = cv2.imread(image_path)
+    detected_texts = []
+    for box in boxes:
+        x1, y1, x2, y2 = map(int, box)
+        cropped_image = image[y1:y2, x1:x2]
+
+        # Cropped 이미지에 대해 OCR 수행
+        ocr_results = reader.readtext(cropped_image,
+                                 allowlist = '{소망동물병원삼화페인트\
+                                 서부슈퍼지영선한복맛깔명성안경콘택트\
+                                 공덕커피애월식당새진테크')
+        for detection in ocr_results:
+            detected_texts = detection[1]
+
+    return detected_texts
+
+def google_translate(text):
+    try:
+        translator = Translator()
+        translation = translator.translate(text, src='ko', dest='en')
+        return translation.text
+    except Exception as e:
+        print(f"Error translating text: {e}")
+        return None
+
+def ocr_and_translate(image_path):
+    detected_text = detect_text(image_path)
+    g_translated_text = google_translate(detected_text)
+
+    return detected_text, g_translated_text
+
+def display_results():
+    selected_index = listbox_images.curselection()
+    if not selected_index:
+        return
+    image_path = listbox_images.get(selected_index[0])
+    original_text_scrolled.delete(1.0, tk.END)
+    translated_text_scrolled.delete(1.0, tk.END)
+    detected, g_translated = ocr_and_translate(image_path)
+    original_text_scrolled.insert(tk.END, detected)
+    translated_text_scrolled.insert(tk.END, g_translated)
+    update_image_display(image_path)
+
+def update_image_display(image_path):
+    image = Image.open(image_path)
+    image.thumbnail((500, 500))  # Resizing for display
+    photo = ImageTk.PhotoImage(image)
+    label_image.config(image=photo)
+    label_image.image = photo
 
 def submit_feedback():
     feedback = feedback_entry.get("1.0", tk.END).strip()
@@ -68,7 +89,6 @@ def submit_feedback():
         print("Feedback received:", feedback)
         messagebox.showinfo("Feedback", "Thank you for your feedback!")
         feedback_entry.delete("1.0", tk.END)
-
 
 root = tk.Tk()
 root.title("Image OCR and Translation GUI")
