@@ -19,7 +19,7 @@ def translate_korean_to_english(text):
 
 # RTDETR model load
 model = RTDETR('pt/rtdetr/signboard_l.pt')
-test_img = "datasets/images/0.jpg"
+test_img = "datasets/images/6.jpg"
 
 # detect
 results = model(test_img, conf=0.4, save=True)
@@ -45,7 +45,10 @@ else:
         cropped_image = image[y1:y2, x1:x2]
 
         # ocr for cropped img
-        result = reader.readtext(cropped_image, allowlist = '{소망동물병원삼화페인트서부슈퍼지영선한복맛깔명성안경콘택트공덕커피애월식당')
+        result = reader.readtext(cropped_image,
+                                 allowlist = '{소망동물병원삼화페인트\
+                                 서부슈퍼지영선한복맛깔명성안경콘택트\
+                                 공덕커피애월식당새진테크')
         for detection in result:
             coords = detection[0]
             text = detection[1]
