@@ -8,6 +8,12 @@ import pyttsx3
 import cv2
 from ultralytics import RTDETR
 from googletrans import Translator
+import urllib.request
+import json
+import webbrowser
+import tkinter as tk
+from tkinter import scrolledtext
+import tkinter.font as tkFont
 
 reader = easyocr.Reader(['ko'])
 translator = Translator()
@@ -27,6 +33,7 @@ def detect_text(image_path):
     # RTDETR 모델을 사용하여 이미지에서 객체를 탐지합니다.
     results = model(image_path)
     boxes = results[0].boxes.xyxy  # 좌상단과 우하단의 xyxy 좌표
+    annotated = results[0].plot()
 
     image = cv2.imread(image_path)
     detected_texts = []
@@ -53,22 +60,63 @@ def google_translate(text):
         print(f"Error translating text: {e}")
         return None
 
+def papago_translate(text):
+    # Papago Translation
+    client_id = "9tuyFZTn8vDDqcz8b37G"  # Replace with your Client ID
+    client_secret = "IanBk_lW_r"  # Replace with your Client Secret
+    encText = urllib.parse.quote(text)
+    data = "source=ko&target=en&text=" + encText
+    url = "https://openapi.naver.com/v1/papago/n2mt"
+    request = urllib.request.Request(url)
+    request.add_header("X-Naver-Client-Id", client_id)
+    request.add_header("X-Naver-Client-Secret", client_secret)
+    try:
+        response = urllib.request.urlopen(request, data=data.encode("utf-8"))
+        rescode = response.getcode()
+        if rescode == 200:
+            response_body = response.read()
+            parsed_json = json.loads(response_body)
+            p_text = parsed_json['message']['result']['translatedText']
+            return p_text
+        else:
+            print("Papago Error Code:", rescode)
+    except Exception as e:
+        print(f"Papago Translation Error: {e}")
+
 def ocr_and_translate(image_path):
     detected_text = detect_text(image_path)
     g_translated_text = google_translate(detected_text)
+    p_translated_text = papago_translate(detected_text)
+    print(p_translated_text)
+    return detected_text, g_translated_text, p_translated_text
 
-    return detected_text, g_translated_text
+def open_link(url):
+    webbrowser.open_new(url)
 
 def display_results():
     selected_index = listbox_images.curselection()
     if not selected_index:
         return
     image_path = listbox_images.get(selected_index[0])
-    original_text_scrolled.delete(1.0, tk.END)
-    translated_text_scrolled.delete(1.0, tk.END)
-    detected, g_translated = ocr_and_translate(image_path)
-    original_text_scrolled.insert(tk.END, detected)
-    translated_text_scrolled.insert(tk.END, g_translated)
+    text_translate_scrolled.delete(1.0, tk.END)
+    infomation_scrolled.delete(1.0, tk.END)
+    detected, g_translated, p_translated = ocr_and_translate(image_path)
+
+    default_font = tkFont.Font(family="Helvetica", size=20)
+    text_translate_scrolled.config(font=default_font)
+    text_translate_scrolled.insert(tk.END,
+                                  f"Detected text : {detected}\n")
+    text_translate_scrolled.insert(tk.END,
+                                    f"Google Translate : {g_translated}\n")
+    text_translate_scrolled.insert(tk.END,
+                                    f"Papago Translate : {p_translated}")
+
+    hyperlink_font = tkFont.Font(family="Helvetica", size=20, underline=True)
+    infomation_scrolled.tag_configure("hyperlink", font=hyperlink_font, foreground="blue")
+    infomation_scrolled.insert(tk.END, "Search on Naver Link\n")
+    infomation_scrolled.insert(tk.END, "Click here", "hyperlink")
+    infomation_scrolled.tag_bind("hyperlink", "<Button-1>", lambda e: open_link(
+        f"https://papago.naver.net/website?locale=ko&source=ko&target=en&url=https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={detected}"))
     update_image_display(image_path)
 
 def update_image_display(image_path):
@@ -111,10 +159,10 @@ button_load_images.pack()
 label_image = tk.Label(left_frame)
 label_image.pack()
 
-original_text_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
-original_text_scrolled.pack()
-translated_text_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
-translated_text_scrolled.pack()
+text_translate_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
+text_translate_scrolled.pack()
+infomation_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
+infomation_scrolled.pack()
 
 button_ocr_translate = tk.Button(right_frame, text="Translate Text", command=display_results)
 button_ocr_translate.pack()
