@@ -14,6 +14,7 @@ import webbrowser
 import tkinter as tk
 from tkinter import scrolledtext
 import tkinter.font as tkFont
+import numpy as np
 
 reader = easyocr.Reader(['ko'])
 translator = Translator()
@@ -49,7 +50,7 @@ def detect_text(image_path):
         for detection in ocr_results:
             detected_texts = detection[1]
 
-    return detected_texts
+    return detected_texts, annotated
 
 def google_translate(text):
     try:
@@ -84,11 +85,11 @@ def papago_translate(text):
         print(f"Papago Translation Error: {e}")
 
 def ocr_and_translate(image_path):
-    detected_text = detect_text(image_path)
+    detected_text, annotated = detect_text(image_path)
     g_translated_text = google_translate(detected_text)
     p_translated_text = papago_translate(detected_text)
     print(p_translated_text)
-    return detected_text, g_translated_text, p_translated_text
+    return detected_text, g_translated_text, p_translated_text, annotated
 
 def open_link(url):
     webbrowser.open_new(url)
@@ -100,7 +101,7 @@ def display_results():
     image_path = listbox_images.get(selected_index[0])
     text_translate_scrolled.delete(1.0, tk.END)
     infomation_scrolled.delete(1.0, tk.END)
-    detected, g_translated, p_translated = ocr_and_translate(image_path)
+    detected, g_translated, p_translated, annotated = ocr_and_translate(image_path)
 
     default_font = tkFont.Font(family="Helvetica", size=20)
     text_translate_scrolled.config(font=default_font)
@@ -117,12 +118,21 @@ def display_results():
     infomation_scrolled.insert(tk.END, "Click here", "hyperlink")
     infomation_scrolled.tag_bind("hyperlink", "<Button-1>", lambda e: open_link(
         f"https://papago.naver.net/website?locale=ko&source=ko&target=en&url=https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={detected}"))
-    update_image_display(image_path)
+    update_image_display(annotated)
 
-def update_image_display(image_path):
-    image = Image.open(image_path)
-    image.thumbnail((500, 500))  # Resizing for display
-    photo = ImageTk.PhotoImage(image)
+def update_image_display(annotated):
+    # OpenCV 이미지 (BGR)를 RGB로 변환합니다.
+    annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+    # RGB 이미지를 PIL 형식으로 변환합니다.
+    annotated_pil = Image.fromarray(annotated_rgb)
+
+    # 이미지 크기를 조정합니다.
+    annotated_pil.thumbnail((500, 500))
+
+    # Tkinter에서 사용할 수 있는 형태로 변환합니다.
+    photo = ImageTk.PhotoImage(annotated_pil)
+
+    # 이미지를 라벨 위젯에 표시합니다.
     label_image.config(image=photo)
     label_image.image = photo
 
