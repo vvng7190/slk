@@ -102,7 +102,6 @@ def display_results():
     default_font = tkFont.Font(family="Helvetica", size=20)
     combined_scrolled_text.config(font=default_font)
 
-    # 감지된 텍스트 및 번역 결과 표시
     combined_scrolled_text.insert(tk.END, f"Detected text : {detected}\n\n")
     combined_scrolled_text.insert(tk.END, f"Google Translate : {g_translated}\n\n")
     combined_scrolled_text.insert(tk.END, f"Papago Translate : {p_translated}\n\n")
@@ -121,7 +120,6 @@ def display_results():
     combined_scrolled_text.insert(tk.END, "Search on Google Maps\n", "google_maps_link")
     combined_scrolled_text.tag_bind("google_maps_link", "<Button-1>", lambda e: open_link_in_webview(google_maps_url))
 
-    # 이미지 업데이트
     update_image_display(annotated)
 
 def update_image_display(annotated):
@@ -163,23 +161,23 @@ def open_link_in_webview(url):
 root = tk.Tk()
 root.title("Image OCR and Translation GUI")
 
-# 프레임 생성
+# frame
 left_frame = tk.Frame(root, width=200, height=200)
 center_frame = tk.Frame(root, width=400, height=200)
 right_frame = tk.Frame(root, width=200, height=200)
 
-# 프레임 배치
+# frame.pack
 left_frame.pack(side=tk.LEFT, fill=tk.Y)
 center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 right_frame.pack(side=tk.LEFT, fill=tk.Y)
 
-# 좌측 프레임 내용
+# left_frame
 listbox_images = Listbox(left_frame, width=40, height=20)
 listbox_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 button_load_images = tk.Button(left_frame, text="Load Images", command=load_images)
 button_load_images.pack()
 
-# 중앙 프레임 내용
+# center_frame
 label_image = tk.Label(center_frame)
 label_image.pack()
 
@@ -190,14 +188,14 @@ feedback_entry.pack()
 submit_button = tk.Button(center_frame, text="Submit Feedback", command=submit_feedback)
 submit_button.pack()
 
-# 우측 프레임 내용 (하나의 ScrolledText 위젯으로 통합)
+# right_frame
 combined_scrolled_text = scrolledtext.ScrolledText(right_frame, height=20, width=40)
 combined_scrolled_text.pack()
 
 button_ocr_translate = tk.Button(right_frame, text="Translate Text", command=display_results)
 button_ocr_translate.pack()
 
-# 발음 버튼 추가
+# pronounce
 button_pronounce = tk.Button(right_frame, text="Pronounce", command=pronounce_text)
 button_pronounce.pack()
 
