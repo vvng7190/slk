@@ -14,6 +14,8 @@ import webbrowser
 import tkinter as tk
 from tkinter import scrolledtext
 import tkinter.font as tkFont
+import webview
+
 
 reader = easyocr.Reader(['ko'])
 translator = Translator()
@@ -33,7 +35,6 @@ def detect_text(image_path):
     results = model(image_path)
     boxes = results[0].boxes.xyxy
     annotated = results[0].plot()
-
     image = cv2.imread(image_path)
     detected_texts = []
     for box in boxes:
@@ -45,7 +46,7 @@ def detect_text(image_path):
                                  서부슈퍼지영선한복맛깔명성안경콘택트\
                                  공덕커피애월식당새진테크')
         for detection in ocr_results:
-            detected_texts = detection[1]
+            detected_texts = detection[1].replace(' ', '')
 
     return detected_texts, annotated
 
@@ -91,30 +92,40 @@ def ocr_and_translate(image_path):
 def open_link(url):
     webbrowser.open_new(url)
 
+def open_hyperlink(url):
+    webbrowser.open_new(url)
+
 def display_results():
     selected_index = listbox_images.curselection()
     if not selected_index:
         return
     image_path = listbox_images.get(selected_index[0])
-    text_translate_scrolled.delete(1.0, tk.END)
-    infomation_scrolled.delete(1.0, tk.END)
+    combined_scrolled_text.delete(1.0, tk.END)
     detected, g_translated, p_translated, annotated = ocr_and_translate(image_path)
 
     default_font = tkFont.Font(family="Helvetica", size=20)
-    text_translate_scrolled.config(font=default_font)
-    text_translate_scrolled.insert(tk.END,
-                                  f"Detected text : {detected}\n")
-    text_translate_scrolled.insert(tk.END,
-                                    f"Google Translate : {g_translated}\n")
-    text_translate_scrolled.insert(tk.END,
-                                    f"Papago Translate : {p_translated}")
+    combined_scrolled_text.config(font=default_font)
 
+    # 감지된 텍스트 및 번역 결과 표시
+    combined_scrolled_text.insert(tk.END, f"Detected text : {detected}\n\n")
+    combined_scrolled_text.insert(tk.END, f"Google Translate : {g_translated}\n\n")
+    combined_scrolled_text.insert(tk.END, f"Papago Translate : {p_translated}\n\n")
+
+    # Naver
     hyperlink_font = tkFont.Font(family="Helvetica", size=20, underline=True)
-    infomation_scrolled.tag_configure("hyperlink", font=hyperlink_font, foreground="blue")
-    infomation_scrolled.insert(tk.END, "Search on Naver Link\n")
-    infomation_scrolled.insert(tk.END, "Click here", "hyperlink")
-    infomation_scrolled.tag_bind("hyperlink", "<Button-1>", lambda e: open_link(
+    combined_scrolled_text.tag_configure("hyperlink", font=hyperlink_font, foreground="blue")
+    combined_scrolled_text.insert(tk.END, "Search on Naver Link\n", "hyperlink")
+    combined_scrolled_text.tag_bind("hyperlink", "<Button-1>", lambda e: open_link_in_webview(
         f"https://papago.naver.net/website?locale=ko&source=ko&target=en&url=https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={detected}"))
+
+    # Google Maps
+    google_maps_link_font = tkFont.Font(family="Helvetica", size=20, underline=True)
+    combined_scrolled_text.tag_configure("google_maps_link", font=google_maps_link_font, foreground="blue")
+    google_maps_url = f"https://www.google.com/maps/search/{detected}?hl=en&entry=ttu"
+    combined_scrolled_text.insert(tk.END, "Search on Google Maps\n", "google_maps_link")
+    combined_scrolled_text.tag_bind("google_maps_link", "<Button-1>", lambda e: open_link_in_webview(google_maps_url))
+
+    # 이미지 업데이트
     update_image_display(annotated)
 
 def update_image_display(annotated):
@@ -140,40 +151,45 @@ def submit_feedback():
         messagebox.showinfo("Feedback", "Thank you for your feedback!")
         feedback_entry.delete("1.0", tk.END)
 
+def open_link_in_webview(url):
+    webview.create_window('Web View', url, width=800, height=600)
+    webview.start()
+
 root = tk.Tk()
 root.title("Image OCR and Translation GUI")
 
-left_frame = tk.Frame(root)
-right_frame = tk.Frame(root)
-listbox_frame = tk.Frame(root)
-feedback_frame = tk.Frame(root)
+# 프레임 생성
+left_frame = tk.Frame(root, width=200, height=200)
+center_frame = tk.Frame(root, width=400, height=200)
+right_frame = tk.Frame(root, width=200, height=200)
 
-left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-listbox_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-feedback_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+# 프레임 배치
+left_frame.pack(side=tk.LEFT, fill=tk.Y)
+center_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+right_frame.pack(side=tk.LEFT, fill=tk.Y)
 
-listbox_images = Listbox(listbox_frame, width=50, height=20)
+# 좌측 프레임 내용
+listbox_images = Listbox(left_frame, width=40, height=20)
 listbox_images.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-button_load_images = tk.Button(listbox_frame, text="Load Images", command=load_images)
+button_load_images = tk.Button(left_frame, text="Load Images", command=load_images)
 button_load_images.pack()
 
-label_image = tk.Label(left_frame)
+# 중앙 프레임 내용
+label_image = tk.Label(center_frame)
 label_image.pack()
 
-text_translate_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
-text_translate_scrolled.pack()
-infomation_scrolled = scrolledtext.ScrolledText(right_frame, height=20, width=50)
-infomation_scrolled.pack()
+feedback_label = tk.Label(center_frame, text="Your Feedback:")
+feedback_label.pack()
+feedback_entry = tk.Text(center_frame, height=5, width=40)
+feedback_entry.pack()
+submit_button = tk.Button(center_frame, text="Submit Feedback", command=submit_feedback)
+submit_button.pack()
+
+# 우측 프레임 내용 (하나의 ScrolledText 위젯으로 통합)
+combined_scrolled_text = scrolledtext.ScrolledText(right_frame, height=20, width=40)
+combined_scrolled_text.pack()
 
 button_ocr_translate = tk.Button(right_frame, text="Translate Text", command=display_results)
 button_ocr_translate.pack()
-
-feedback_label = tk.Label(feedback_frame, text="Your Feedback:")
-feedback_label.pack()
-feedback_entry = tk.Text(feedback_frame, height=5, width=40)
-feedback_entry.pack()
-submit_button = tk.Button(feedback_frame, text="Submit Feedback", command=submit_feedback)
-submit_button.pack()
 
 root.mainloop()
