@@ -16,7 +16,7 @@ from tkinter import scrolledtext
 import tkinter.font as tkFont
 import webview
 
-
+engine = pyttsx3.init()
 reader = easyocr.Reader(['ko'])
 translator = Translator()
 
@@ -147,6 +147,15 @@ def submit_feedback():
         messagebox.showinfo("Feedback", "Thank you for your feedback!")
         feedback_entry.delete("1.0", tk.END)
 
+def pronounce_text():
+    selected_index = listbox_images.curselection()
+    if not selected_index:
+        return
+    image_path = listbox_images.get(selected_index[0])
+    detected, _, _, _ = ocr_and_translate(image_path)
+    engine.say(detected)
+    engine.runAndWait()
+
 def open_link_in_webview(url):
     webview.create_window('Web View', url, width=800, height=600)
     webview.start()
@@ -187,5 +196,9 @@ combined_scrolled_text.pack()
 
 button_ocr_translate = tk.Button(right_frame, text="Translate Text", command=display_results)
 button_ocr_translate.pack()
+
+# 발음 버튼 추가
+button_pronounce = tk.Button(right_frame, text="Pronounce", command=pronounce_text)
+button_pronounce.pack()
 
 root.mainloop()
