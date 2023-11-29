@@ -86,11 +86,7 @@ def ocr_and_translate(image_path):
     detected_text, annotated = detect_text(image_path)
     g_translated_text = google_translate(detected_text)
     p_translated_text = papago_translate(detected_text)
-    print(p_translated_text)
     return detected_text, g_translated_text, p_translated_text, annotated
-
-def open_link(url):
-    webbrowser.open_new(url)
 
 def open_hyperlink(url):
     webbrowser.open_new(url)
