@@ -32,7 +32,8 @@ def load_images():
         listbox_images.insert(tk.END, os.path.join(image_folder_path, image))
 
 def detect_text(image_path):
-    results = model(image_path)
+    results = model(image_path,
+                    conf=0.8)
     boxes = results[0].boxes.xyxy
     annotated = results[0].plot()
     image = cv2.imread(image_path)
@@ -44,7 +45,8 @@ def detect_text(image_path):
         ocr_results = reader.readtext(cropped_image,
                                  allowlist = '{소망동물병원삼화페인트\
                                  서부슈퍼지영선한복맛깔명성안경콘택트\
-                                 공덕커피애월식당새진테크')
+                                 공덕커피애월식당새진테크\
+                                 뉴욕야시장삼청당주안피아노후문약국치즈를사랑한찜닭다비치안경')
         for detection in ocr_results:
             detected_texts = detection[1].replace(' ', '')
 
@@ -189,7 +191,7 @@ submit_button = tk.Button(center_frame, text="Submit Feedback", command=submit_f
 submit_button.pack()
 
 # right_frame
-combined_scrolled_text = scrolledtext.ScrolledText(right_frame, height=20, width=40)
+combined_scrolled_text = scrolledtext.ScrolledText(right_frame, width=40, height=20)
 combined_scrolled_text.pack()
 
 button_ocr_translate = tk.Button(right_frame, text="Translate Text", command=display_results)
