@@ -32,25 +32,24 @@ def load_images():
         listbox_images.insert(tk.END, os.path.join(image_folder_path, image))
 
 def detect_text(image_path):
-    results = model(image_path,
-                    conf=0.8)
+    results = model(image_path, conf=0.8)
     boxes = results[0].boxes.xyxy
-    annotated = results[0].plot()
+
     image = cv2.imread(image_path)
+    if len(boxes) == 0:  # No signboards detected
+        return "", image  # Return empty string and original image
+
+    annotated = results[0].plot()
     detected_texts = []
     for box in boxes:
         x1, y1, x2, y2 = map(int, box)
         cropped_image = image[y1:y2, x1:x2]
 
-        ocr_results = reader.readtext(cropped_image,
-                                 allowlist = '이지붕어빵삼화카피금별맥주홍곱창{소망동물병원삼화페인트\
-                                 서부슈퍼지영선한복맛깔명성안경콘택트\
-                                 공덕커피애월식당새진테크\
-                                 뉴욕야시장삼청당주안피아노후문약국치즈를사랑한찜닭다비치안경')
+        ocr_results = reader.readtext(cropped_image, allowlist='경곱공금깔노뉴다당덕동맛망맥명물별병복부붕비빵삼새서선성소슈시식아안애야어영욕원월이인장주지진창청치카커콘크택테트퍼페피한홍화')
         for detection in ocr_results:
-            detected_texts = detection[1].replace(' ', '')
+            detected_texts.append(detection[1].replace(' ', ''))
 
-    return detected_texts, annotated
+    return ' '.join(detected_texts), annotated  # Join all detected texts into a single string
 
 def google_translate(text):
     try:
@@ -59,10 +58,9 @@ def google_translate(text):
         return translation.text
     except Exception as e:
         print(f"Error translating text: {e}")
-        return None
+        return "Translation Error"
 
 def papago_translate(text):
-    # Papago Translation
     client_id = "9tuyFZTn8vDDqcz8b37G"  # Replace with your Client ID
     client_secret = "IanBk_lW_r"  # Replace with your Client Secret
     encText = urllib.parse.quote(text)
@@ -77,12 +75,13 @@ def papago_translate(text):
         if rescode == 200:
             response_body = response.read()
             parsed_json = json.loads(response_body)
-            p_text = parsed_json['message']['result']['translatedText']
-            return p_text
+            return parsed_json['message']['result']['translatedText']
         else:
             print("Papago Error Code:", rescode)
+            return "Papago Translation Error"
     except Exception as e:
         print(f"Papago Translation Error: {e}")
+        return "Papago Translation Error"
 
 def ocr_and_translate(image_path):
     detected_text, annotated = detect_text(image_path)
@@ -97,40 +96,51 @@ def display_results():
     selected_index = listbox_images.curselection()
     if not selected_index:
         return
+
     image_path = listbox_images.get(selected_index[0])
     combined_scrolled_text.delete(1.0, tk.END)
-    detected, g_translated, p_translated, annotated = ocr_and_translate(image_path)
 
-    default_font = tkFont.Font(family="Helvetica", size=20)
-    combined_scrolled_text.config(font=default_font)
+    detected_text, annotated = detect_text(image_path)
 
-    combined_scrolled_text.insert(tk.END, f"Detected text : {detected}\n\n")
-    combined_scrolled_text.insert(tk.END, f"Google Translate : {g_translated}\n\n")
-    combined_scrolled_text.insert(tk.END, f"Papago Translate : {p_translated}\n\n")
+    if detected_text:  # Text is detected
+        g_translated_text = google_translate(detected_text)
+        p_translated_text = papago_translate(detected_text)
 
-    # Naver
-    hyperlink_font = tkFont.Font(family="Helvetica", size=20, underline=True)
-    combined_scrolled_text.tag_configure("hyperlink", font=hyperlink_font, foreground="blue")
-    combined_scrolled_text.insert(tk.END, "Search on Naver Link\n", "hyperlink")
-    combined_scrolled_text.tag_bind("hyperlink", "<Button-1>", lambda e: open_link_in_webview(
-        f"https://papago.naver.net/website?locale=ko&source=ko&target=en&url=https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={detected}"))
+        default_font = tkFont.Font(family="Helvetica", size=20)
+        combined_scrolled_text.config(font=default_font)
 
-    # Google Maps
-    google_maps_link_font = tkFont.Font(family="Helvetica", size=20, underline=True)
-    combined_scrolled_text.tag_configure("google_maps_link", font=google_maps_link_font, foreground="blue")
-    google_maps_url = f"https://www.google.com/maps/search/{detected}?hl=en&entry=ttu"
-    combined_scrolled_text.insert(tk.END, "Search on Google Maps\n", "google_maps_link")
-    combined_scrolled_text.tag_bind("google_maps_link", "<Button-1>", lambda e: open_link_in_webview(google_maps_url))
+        combined_scrolled_text.insert(tk.END, f"Detected text : {detected_text}\n\n")
+        combined_scrolled_text.insert(tk.END, f"Google Translate : {g_translated_text}\n\n")
+        combined_scrolled_text.insert(tk.END, f"Papago Translate : {p_translated_text}\n\n")
 
-    update_image_display(annotated)
+        # Adding hyperlinks for Naver and Google Maps
+        hyperlink_font = tkFont.Font(family="Helvetica", size=20, underline=True)
+        combined_scrolled_text.tag_configure("hyperlink", font=hyperlink_font, foreground="blue")
+        combined_scrolled_text.insert(tk.END, "Search on Naver Link\n", "hyperlink")
+        combined_scrolled_text.tag_bind("hyperlink", "<Button-1>", lambda e: open_link_in_webview(f"https://papago.naver.net/website?locale=ko&source=ko&target=en&url=https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={detected_text}"))
 
-def update_image_display(annotated):
-    annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-    annotated_pil = Image.fromarray(annotated_rgb)
+        google_maps_link_font = tkFont.Font(family="Helvetica", size=20, underline=True)
+        combined_scrolled_text.tag_configure("google_maps_link", font=google_maps_link_font, foreground="blue")
+        google_maps_url = f"https://www.google.com/maps/search/{detected_text}?hl=en&entry=ttu"
+        combined_scrolled_text.insert(tk.END, "Search on Google Maps\n", "google_maps_link")
+        combined_scrolled_text.tag_bind("google_maps_link", "<Button-1>", lambda e: open_link_in_webview(google_maps_url))
 
-    annotated_pil.thumbnail((640, 640))
+        update_image_display(annotated)  # Display annotated image
 
-    photo = ImageTk.PhotoImage(annotated_pil)
+    else:  # No text detected
+        combined_scrolled_text.insert(tk.END, "Signboard not detected\n")
+        update_image_display(image_path, original=True)  # Display original image
+
+
+def update_image_display(image_or_path, original=False):
+    if original:
+        image = Image.open(image_or_path)
+    else:
+        annotated_rgb = cv2.cvtColor(image_or_path, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(annotated_rgb)
+
+    image.thumbnail((640, 640))
+    photo = ImageTk.PhotoImage(image)
 
     label_image.config(image=photo)
     label_image.image = photo
