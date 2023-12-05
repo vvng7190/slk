@@ -43,7 +43,7 @@ def detect_text(image_path):
         cropped_image = image[y1:y2, x1:x2]
 
         ocr_results = reader.readtext(cropped_image,
-                                 allowlist = '{소망동물병원삼화페인트\
+                                 allowlist = '이지붕어빵삼화카피금별맥주홍곱창{소망동물병원삼화페인트\
                                  서부슈퍼지영선한복맛깔명성안경콘택트\
                                  공덕커피애월식당새진테크\
                                  뉴욕야시장삼청당주안피아노후문약국치즈를사랑한찜닭다비치안경')
